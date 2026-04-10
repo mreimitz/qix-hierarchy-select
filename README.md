@@ -4,11 +4,11 @@ A tree-structured filter extension for Qlik Sense with expand/collapse capabilit
 
 **Version:** 99.11.0
 
-<p>
-  <img src="images/image.png" width="32%" />
-  <img src="images/image2.png" width="32%" />
-  <img src="images/image3.png" width="32%" />
-</p>
+<table><tr>
+  <td valign="top"><img src="images/image.png" width="100%" /></td>
+  <td valign="top"><img src="images/image2.png" width="100%" /></td>
+  <td valign="top"><img src="images/image3.png" width="100%" /></td>
+</tr></table>
 
 
 ---
