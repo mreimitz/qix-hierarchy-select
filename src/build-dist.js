@@ -2340,6 +2340,12 @@ const supernovaCode = `/*
       // Save scroll position before rebuild
       var prevScrollContainer = element.querySelector(".qhf-tree-scroll");
       var savedInlineScroll = prevScrollContainer ? prevScrollContainer.scrollTop : 0;
+      // Save focus + caret so a rebuild triggered while the user is typing
+      // doesn't kick them out of the search box
+      var _ae = document.activeElement;
+      var _searchWasFocused = !!(_ae && _ae.classList && _ae.classList.contains("qhf-search") && element.contains(_ae));
+      var _searchSelStart = _searchWasFocused ? _ae.selectionStart : null;
+      var _searchSelEnd = _searchWasFocused ? _ae.selectionEnd : null;
       element.innerHTML = "";
       var rootEl = document.createElement("div");
       rootEl.className = "qhf-root";
@@ -2369,7 +2375,9 @@ const supernovaCode = `/*
           // Focus the input after render if opening
           if (localState.searchOpen) {
             requestAnimationFrame(function() {
-              var inp = rootEl.querySelector(".qhf-search");
+              // Query off element, not rootEl — rootEl is from the previous
+              // render pass and was detached by the rebuild above
+              var inp = element.querySelector(".qhf-search");
               if (inp) inp.focus();
             });
           }
@@ -2430,6 +2438,14 @@ const supernovaCode = `/*
 
         searchWrap.appendChild(searchInput);
         rootEl.appendChild(searchWrap);
+
+        // Restore focus + caret if the rebuild happened while the user was typing
+        if (_searchWasFocused) {
+          searchInput.focus();
+          if (_searchSelStart !== null) {
+            try { searchInput.setSelectionRange(_searchSelStart, _searchSelEnd); } catch (e) { /* ignore */ }
+          }
+        }
       }
 
       // Tree scroll container
