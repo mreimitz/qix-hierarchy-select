@@ -2,7 +2,7 @@
   "name": "Hierarchical Tree Filter",
   "description": "A tree-structured filter with expand/collapse, supporting parent-child and multi-dimension hierarchies",
   "type": "visualization",
-  "version": "99.13.0",
+  "version": "99.14.0",
   "author": "Custom",
   "icon": "filterpane",
   "supernova": true,

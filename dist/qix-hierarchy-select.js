@@ -604,6 +604,38 @@
     }
   }
 
+  // ---- Focus preservation across DOM rebuilds ----
+  // A rebuild detaches the focused tree row, which drops focus to <body> and
+  // breaks keyboard navigation. Capture the row's id before, restore after.
+
+  // Returns the data-node-id of the focused tree row inside container, or null
+  // if focus is elsewhere (another instance, the search box, outside entirely).
+  function captureFocusedNodeId(container) {
+    var ae = document.activeElement;
+    if (!ae || !container || !container.contains(ae)) return null;
+    var row = (ae.classList && ae.classList.contains("qhf-node"))
+      ? ae
+      : (ae.closest ? ae.closest(".qhf-node") : null);
+    return row ? row.getAttribute("data-node-id") : null;
+  }
+
+  // Refocus the row with the given id, if it still exists after the rebuild
+  // (it may have been filtered out by a search). Compares attributes rather
+  // than using an attribute selector — node ids embed dimension values that
+  // can contain quotes and would break the selector.
+  function restoreFocusedNode(container, nodeId) {
+    if (!nodeId || !container) return;
+    var rows = container.querySelectorAll(".qhf-node[data-node-id]");
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].getAttribute("data-node-id") === nodeId) {
+        // preventScroll keeps the restored scroll position from being
+        // overridden by the browser scrolling the row into view
+        try { rows[i].focus({ preventScroll: true }); } catch (e) { rows[i].focus(); }
+        return;
+      }
+    }
+  }
+
   function renderTree(element, roots, opts) {
     var container = element.querySelector(".qhf-tree-scroll");
     if (!container) return;
@@ -626,14 +658,17 @@
     }
 
     // Full rebuild (structure changed, search active, or first render)
-    // Save scroll position before rebuild so we can restore it
+    // Save scroll position and keyboard focus before rebuild so we can restore them
     var savedScroll = container.scrollTop;
+    var focusedNodeId = captureFocusedNodeId(container);
     container.innerHTML = "";
     for (var i = 0; i < roots.length; i++) {
       renderBranch(container, roots[i], opts);
     }
     // Restore scroll position after full rebuild
     if (savedScroll > 0) container.scrollTop = savedScroll;
+    // Restore keyboard focus to the same row, if it survived the rebuild
+    restoreFocusedNode(container, focusedNodeId);
   }
 
   function renderBranch(parent, node, opts) {
@@ -2343,6 +2378,10 @@
       var _searchWasFocused = !!(_ae && _ae.classList && _ae.classList.contains("qhf-search") && element.contains(_ae));
       var _searchSelStart = _searchWasFocused ? _ae.selectionStart : null;
       var _searchSelEnd = _searchWasFocused ? _ae.selectionEnd : null;
+      // Same for a keyboard-focused tree row — renderTree can't recover this
+      // one itself, because element.innerHTML below detaches it before
+      // renderTree ever runs
+      var _focusedNodeId = captureFocusedNodeId(element);
       element.innerHTML = "";
       var rootEl = document.createElement("div");
       rootEl.className = "qhf-root";
@@ -2472,6 +2511,8 @@
 
       // Restore scroll position from before the full rebuild
       if (savedInlineScroll > 0) scrollContainer.scrollTop = savedInlineScroll;
+      // Restore keyboard focus to the same tree row, if it survived the rebuild
+      restoreFocusedNode(scrollContainer, _focusedNodeId);
 
       // Bottom toolbar
       if (constraints.passive !== true) {
